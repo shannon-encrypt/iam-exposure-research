@@ -1,0 +1,42 @@
+categories:
+
+  cloud_credentials:
+    description: "Exposed cloud provider credentials and service account keys"
+    queries:
+      - 'AWS_ACCESS_KEY_ID AKIA filename:.env'
+      - 'AWS_SECRET_ACCESS_KEY filename:.env'
+      - '"aws_access_key_id" "aws_secret_access_key" extension:py'
+      - '"aws_access_key_id" "aws_secret_access_key" extension:json'
+      - 'type:service_account project_id extension:json'
+      - '"private_key_id" "client_email" extension:json'
+      - 'GOOGLE_APPLICATION_CREDENTIALS extension:env'
+      - 'AZURE_CLIENT_SECRET extension:env'
+      - 'AZURE_TENANT_ID AZURE_CLIENT_ID extension:env'
+
+  okta_saml_sso:
+    description: "Exposed Okta tokens, SAML metadata, and SSO configuration"
+    queries:
+      - 'okta_api_token filename:.env'
+      - 'OKTA_CLIENT_SECRET extension:env'
+      - 'SSWS filename:.env'
+      - '"okta.com" "clientSecret" extension:json'
+      - 'saml_metadata filename:metadata.xml'
+      - 'entityID "urn:oasis:names:tc:SAML" filename:metadata.xml'
+      - '"x509Certificate" "SingleSignOnService" extension:xml'
+
+  entra_azure_ad:
+    description: "Exposed Microsoft Entra / Azure AD credentials"
+    queries:
+      - 'AZURE_AD_CLIENT_SECRET extension:env'
+      - '"tenantId" "clientSecret" "clientId" extension:json'
+      - 'microsoft.com "client_secret" extension:py'
+
+  generic_secrets:
+    description: "Generic .env files and config leaks with auth material"
+    queries:
+      - 'filename:.env DB_PASSWORD API_KEY'
+      - 'filename:.env SECRET_KEY'
+      - 'filename:config.yml password: NOT example NOT sample'
+      - 'filename:secrets.yml NOT example'
+      - 'filename:.npmrc _authToken'
+      - 'filename:.dockercfg auth'
