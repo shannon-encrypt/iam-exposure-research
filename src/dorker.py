@@ -86,7 +86,8 @@ def redact_snippet(content: str) -> str:
 def run_dorks(
     categories: list[str] = None,
     max_results_per_query: int = 10,
-    dry_run: bool = False
+    dry_run: bool = False,
+    org: str = None,
 ) -> list[Finding]:
     """
     Execute GitHub dork queries and return normalized Finding objects.
@@ -109,10 +110,14 @@ def run_dorks(
     if categories:
         dorks = {k: v for k, v in dorks.items() if k in categories}
 
+    org_prefix = f"org:{org} " if org else ""
+
     findings: dict[str, Finding] = {}  # keyed by finding id for dedup
     total_queries = sum(len(v["queries"]) for v in dorks.values())
 
     console.print(f"\n[bold]IAM Exposure Research — GitHub Dorking[/bold]")
+    if org:
+        console.print(f"Org scope: [bold cyan]{org}[/bold cyan]")
     console.print(f"Categories: {list(dorks.keys())}")
     console.print(f"Total queries: {total_queries}")
     console.print(f"Max results/query: {max_results_per_query}\n")
@@ -121,7 +126,7 @@ def run_dorks(
         for cat, meta in dorks.items():
             console.print(f"[cyan]{cat}[/cyan]: {meta['description']}")
             for q in meta["queries"]:
-                console.print(f"  → {q}")
+                console.print(f"  → {org_prefix}{q}")
         return []
 
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
@@ -129,10 +134,11 @@ def run_dorks(
 
         for category, meta in dorks.items():
             for query in meta["queries"]:
-                progress.update(task, description=f"[cyan]{category}[/cyan]: {query[:60]}...")
+                scoped_query = f"{org_prefix}{query}"
+                progress.update(task, description=f"[cyan]{category}[/cyan]: {scoped_query[:60]}...")
 
                 try:
-                    results = g.search_code(query)
+                    results = g.search_code(scoped_query)
                     count = 0
 
                     for item in results:

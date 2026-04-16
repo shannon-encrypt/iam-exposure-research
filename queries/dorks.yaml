@@ -5,8 +5,8 @@ categories:
     queries:
       - 'AWS_ACCESS_KEY_ID AKIA filename:.env'
       - 'AWS_SECRET_ACCESS_KEY filename:.env'
-      - '"aws_access_key_id" "aws_secret_access_key" extension:py'
-      - '"aws_access_key_id" "aws_secret_access_key" extension:json'
+      - '"aws_access_key_id" "AKIA" extension:py NOT os.environ NOT os.getenv'
+      - '"aws_access_key_id" "AKIA" extension:json'
       - 'type:service_account project_id extension:json'
       - '"private_key_id" "client_email" extension:json'
       - 'GOOGLE_APPLICATION_CREDENTIALS extension:env'
@@ -38,5 +38,5 @@ categories:
       - 'filename:.env SECRET_KEY'
       - 'filename:config.yml password: NOT example NOT sample'
       - 'filename:secrets.yml NOT example'
-      - 'filename:.npmrc _authToken'
+      - 'filename:.npmrc _authToken NOT ${NPM_TOKEN} NOT NPM_TOKEN'
       - 'filename:.dockercfg auth'

@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument("--only-real", action="store_true", help="Only include likely-active credentials")
     parser.add_argument("--skip-enrichment", action="store_true", help="Skip Claude API enrichment")
     parser.add_argument("--load-findings", type=str, help="Load existing findings.json")
+    parser.add_argument("--org", type=str, help="Scope all dork queries to a GitHub org (e.g. example-org)")
     return parser.parse_args()
 
 
@@ -45,7 +46,7 @@ def main():
         console.print(f"[green]Loaded {len(findings)} findings[/green]")
     else:
         from src.dorker import run_dorks
-        findings = run_dorks(categories=args.categories, max_results_per_query=args.max_results, dry_run=args.dry_run)
+        findings = run_dorks(categories=args.categories, max_results_per_query=args.max_results, dry_run=args.dry_run, org=args.org)
         if args.dry_run:
             sys.exit(0)
 
