@@ -70,3 +70,25 @@ def _to_finding(result: dict) -> Finding:
         secret_types=[detector],
         source="trufflehog",
     )
+
+
+def scan_source(org: str = None, repo: str = None) -> list[Finding]:
+    all_results = []
+
+    if org:
+        console.print(f"[bold]TruffleHog: scanning org [cyan]{org}[/cyan]...[/bold]")
+        all_results.extend(_run_trufflehog(["github", f"--org={org}"]))
+
+    if repo:
+        console.print(f"[bold]TruffleHog: scanning repo [cyan]{repo}[/cyan]...[/bold]")
+        all_results.extend(_run_trufflehog(["git", repo]))
+
+    seen: dict[str, Finding] = {}
+    for result in all_results:
+        finding = _to_finding(result)
+        if finding.id not in seen:
+            seen[finding.id] = finding
+
+    findings = list(seen.values())
+    console.print(f"[green]TruffleHog: {len(findings)} unique findings from independent scan[/green]")
+    return findings

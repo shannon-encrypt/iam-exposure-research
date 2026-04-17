@@ -164,3 +164,69 @@ def test_to_finding_missing_github_metadata_graceful():
     assert f.repo_full_name == ""
     assert f.file_path == ""
     assert f.source == "trufflehog"
+
+
+from src.trufflehog import scan_source
+
+TH_AWS_RESULT = {
+    "SourceMetadata": {
+        "Data": {
+            "Github": {
+                "repository": "https://github.com/org/repo",
+                "file": ".env",
+                "link": "https://github.com/org/repo/blob/abc123/.env",
+            }
+        }
+    },
+    "DetectorName": "AWS",
+    "Verified": True,
+}
+
+TH_OKTA_RESULT = {
+    "SourceMetadata": {
+        "Data": {
+            "Github": {
+                "repository": "https://github.com/org/repo2",
+                "file": "config.env",
+                "link": "https://github.com/org/repo2/blob/abc123/config.env",
+            }
+        }
+    },
+    "DetectorName": "Okta",
+    "Verified": False,
+}
+
+
+def test_scan_source_org_calls_github_subcommand():
+    with patch("src.trufflehog._run_trufflehog", return_value=[TH_AWS_RESULT]) as mock_run:
+        findings = scan_source(org="myorg")
+    mock_run.assert_called_once_with(["github", "--org=myorg"])
+    assert len(findings) == 1
+    assert findings[0].source == "trufflehog"
+
+
+def test_scan_source_repo_calls_git_subcommand():
+    with patch("src.trufflehog._run_trufflehog", return_value=[TH_AWS_RESULT]) as mock_run:
+        findings = scan_source(repo="https://github.com/org/repo")
+    mock_run.assert_called_once_with(["git", "https://github.com/org/repo"])
+    assert len(findings) == 1
+
+
+def test_scan_source_org_and_repo_calls_both():
+    with patch("src.trufflehog._run_trufflehog", side_effect=[[TH_AWS_RESULT], [TH_OKTA_RESULT]]) as mock_run:
+        findings = scan_source(org="myorg", repo="https://github.com/org/repo2")
+    assert mock_run.call_count == 2
+    assert len(findings) == 2
+
+
+def test_scan_source_deduplicates_same_finding():
+    with patch("src.trufflehog._run_trufflehog", side_effect=[[TH_AWS_RESULT], [TH_AWS_RESULT]]):
+        findings = scan_source(org="myorg", repo="https://github.com/org/repo")
+    assert len(findings) == 1
+
+
+def test_scan_source_returns_empty_when_no_args():
+    with patch("src.trufflehog._run_trufflehog") as mock_run:
+        findings = scan_source()
+    mock_run.assert_not_called()
+    assert findings == []
