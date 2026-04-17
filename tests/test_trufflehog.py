@@ -1,3 +1,5 @@
+import hashlib
+
 from src.dorker import Finding
 
 
@@ -230,3 +232,88 @@ def test_scan_source_returns_empty_when_no_args():
         findings = scan_source()
     mock_run.assert_not_called()
     assert findings == []
+
+
+from src.trufflehog import scan_repos_from_findings
+
+
+def _make_finding(repo_url: str, file_path: str, severity: str, source: str = "dorker") -> Finding:
+    fid = hashlib.sha256(f"{repo_url}::{file_path}::test".encode()).hexdigest()[:16]
+    return Finding(
+        id=fid,
+        query="test",
+        category="cloud_credentials",
+        repo_full_name="/".join(repo_url.rstrip("/").split("/")[-2:]),
+        repo_url=repo_url,
+        file_path=file_path,
+        file_url=repo_url + "/blob/main/" + file_path,
+        snippet="",
+        repo_is_fork=False,
+        repo_stars=0,
+        repo_language=None,
+        repo_created_at="",
+        repo_pushed_at="",
+        severity=severity,
+        source=source,
+    )
+
+
+def test_scan_repos_from_findings_scans_non_informational_repos():
+    findings = [
+        _make_finding("https://github.com/org/repo1", ".env", "high"),
+        _make_finding("https://github.com/org/repo2", ".env", "informational"),
+        _make_finding("https://github.com/org/repo3", ".env", "critical"),
+    ]
+    new_th = {
+        "SourceMetadata": {"Data": {"Github": {
+            "repository": "https://github.com/org/repo1",
+            "file": "secrets/old.env",
+            "link": "https://github.com/org/repo1/blob/abc/secrets/old.env",
+        }}},
+        "DetectorName": "AWS",
+        "Verified": False,
+    }
+    with patch("src.trufflehog._run_trufflehog", return_value=[new_th]) as mock_run:
+        new_findings = scan_repos_from_findings(findings)
+
+    assert mock_run.call_count == 2
+    called_args = [call[0][0] for call in mock_run.call_args_list]
+    assert ["git", "https://github.com/org/repo1"] in called_args
+    assert ["git", "https://github.com/org/repo3"] in called_args
+
+
+def test_scan_repos_from_findings_excludes_already_known_ids():
+    existing_finding = _make_finding("https://github.com/org/repo1", ".env", "high")
+    same_result = {
+        "SourceMetadata": {"Data": {"Github": {
+            "repository": "https://github.com/org/repo1",
+            "file": ".env",
+            "link": "https://github.com/org/repo1/blob/main/.env",
+        }}},
+        "DetectorName": "test",
+        "Verified": False,
+    }
+    with patch("src.trufflehog._run_trufflehog", return_value=[same_result]):
+        new_findings = scan_repos_from_findings([existing_finding])
+    for f in new_findings:
+        assert f.id != existing_finding.id
+
+
+def test_scan_repos_from_findings_returns_empty_if_all_informational():
+    findings = [
+        _make_finding("https://github.com/org/repo1", ".env", "informational"),
+    ]
+    with patch("src.trufflehog._run_trufflehog") as mock_run:
+        result = scan_repos_from_findings(findings)
+    mock_run.assert_not_called()
+    assert result == []
+
+
+def test_scan_repos_from_findings_deduplicates_repos():
+    findings = [
+        _make_finding("https://github.com/org/repo1", ".env", "high"),
+        _make_finding("https://github.com/org/repo1", "config.yml", "medium"),
+    ]
+    with patch("src.trufflehog._run_trufflehog", return_value=[]) as mock_run:
+        scan_repos_from_findings(findings)
+    assert mock_run.call_count == 1
