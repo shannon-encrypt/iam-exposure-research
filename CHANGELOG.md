@@ -1,10 +1,14 @@
 # Changelog
 
-## [Unreleased] - 2026-04-16
+## [Unreleased] - 2026-04-17
 
 ### Added
-- `--org` CLI flag to scope all dork queries to a specific GitHub org (e.g. `--org example-org`)
-- Org prefix (`org:<name>`) is prepended to all queries at runtime and shown in dry-run output
+- `--trufflehog` flag: enables TruffleHog scanning in two modes
+  - Independent scan: runs `trufflehog github --org` or `trufflehog git <repo>` before dorking
+  - Depth scan: runs `trufflehog git` on all non-informational repos after first enrichment pass
+- `--repo <url>` flag: scan a single repo with TruffleHog (implies `--trufflehog`)
+- `source` field on `Finding` dataclass (`"dorker"` or `"trufflehog"`) for origin tracking
+- Two-pass enrichment: independent+dorker findings enriched first, TruffleHog depth findings enriched separately
 
 ### Changed
 - AWS dork queries now exclude `os.environ` and `os.getenv` references to reduce false positives
