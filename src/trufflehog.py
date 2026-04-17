@@ -72,7 +72,7 @@ def _to_finding(result: dict) -> Finding:
     )
 
 
-def scan_source(org: str = None, repo: str = None) -> list[Finding]:
+def scan_source(org: str | None = None, repo: str | None = None) -> list[Finding]:
     all_results = []
 
     if org:
