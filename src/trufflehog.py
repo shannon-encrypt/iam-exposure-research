@@ -17,7 +17,7 @@ console = Console()
 def _run_trufflehog(args: list[str]) -> list[dict]:
     cmd = ["trufflehog"] + args + ["--json", "--no-update"]
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     except FileNotFoundError:
         raise RuntimeError(
             "trufflehog not found. Install from https://github.com/trufflesecurity/trufflehog"
