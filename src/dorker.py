@@ -39,6 +39,7 @@ class Finding:
     repo_created_at: str
     repo_pushed_at: str
     discovered_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    source: str = "dorker"  # "dorker" or "trufflehog"
 
     # Filled in by enricher
     severity: Optional[str] = None
