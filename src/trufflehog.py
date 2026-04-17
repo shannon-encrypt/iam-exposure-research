@@ -92,3 +92,32 @@ def scan_source(org: str | None = None, repo: str | None = None) -> list[Finding
     findings = list(seen.values())
     console.print(f"[green]TruffleHog: {len(findings)} unique findings from independent scan[/green]")
     return findings
+
+
+def scan_repos_from_findings(findings: list[Finding]) -> list[Finding]:
+    repos = list({
+        f.repo_url
+        for f in findings
+        if f.severity is not None and f.severity != "informational" and f.repo_url
+    })
+
+    if not repos:
+        console.print("[yellow]TruffleHog: no repos to depth-scan (all findings are informational)[/yellow]")
+        return []
+
+    console.print(f"[bold]TruffleHog: depth-scanning {len(repos)} repos (full git history)...[/bold]")
+
+    existing_ids = {f.id for f in findings}
+    new_findings: dict[str, Finding] = {}
+
+    for repo_url in repos:
+        console.print(f"  → {repo_url}")
+        results = _run_trufflehog(["git", repo_url])
+        for result in results:
+            finding = _to_finding(result)
+            if finding.id not in existing_ids and finding.id not in new_findings:
+                new_findings[finding.id] = finding
+
+    result_list = list(new_findings.values())
+    console.print(f"[green]TruffleHog: {len(result_list)} new findings from depth scan[/green]")
+    return result_list
