@@ -40,8 +40,10 @@ def deduplicate(finding_lists: list) -> list:
         for f in findings:
             if f.id not in seen:
                 seen[f.id] = f
-            elif f.source == "trufflehog" and f.is_likely_real:
-                seen[f.id] = f
+            else:
+                existing = seen[f.id]
+                if f.source == "trufflehog" and f.is_likely_real and not existing.is_likely_real:
+                    seen[f.id] = f
     return list(seen.values())
 
 
