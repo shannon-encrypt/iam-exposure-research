@@ -94,3 +94,73 @@ def test_run_trufflehog_raises_if_binary_missing():
         except RuntimeError as e:
             assert "trufflehog not found" in str(e)
             assert "https://github.com/trufflesecurity/trufflehog" in str(e)
+
+
+from src.trufflehog import _to_finding
+
+
+SAMPLE_TH_RESULT = {
+    "SourceMetadata": {
+        "Data": {
+            "Github": {
+                "repository": "https://github.com/org/repo",
+                "file": "config/.env",
+                "link": "https://github.com/org/repo/blob/abc123/config/.env",
+                "commit": "abc123",
+                "email": "dev@example.com",
+                "timestamp": "2024-01-01 00:00:00 +0000",
+            }
+        }
+    },
+    "DetectorName": "AWS",
+    "Verified": True,
+}
+
+
+def test_to_finding_maps_fields_correctly():
+    f = _to_finding(SAMPLE_TH_RESULT)
+    assert f.repo_full_name == "org/repo"
+    assert f.repo_url == "https://github.com/org/repo"
+    assert f.file_path == "config/.env"
+    assert f.file_url == "https://github.com/org/repo/blob/abc123/config/.env"
+    assert f.secret_types == ["AWS"]
+    assert f.is_likely_real is True
+    assert f.source == "trufflehog"
+    assert f.category == "aws"
+
+
+def test_to_finding_unverified_sets_is_likely_real_false():
+    result = dict(SAMPLE_TH_RESULT)
+    result["Verified"] = False
+    f = _to_finding(result)
+    assert f.is_likely_real is False
+
+
+def test_to_finding_stable_id():
+    f1 = _to_finding(SAMPLE_TH_RESULT)
+    f2 = _to_finding(SAMPLE_TH_RESULT)
+    assert f1.id == f2.id
+
+
+def test_to_finding_id_differs_for_different_files():
+    result2 = dict(SAMPLE_TH_RESULT)
+    result2["SourceMetadata"] = {
+        "Data": {
+            "Github": {
+                "repository": "https://github.com/org/repo",
+                "file": "other/.env",
+                "link": "https://github.com/org/repo/blob/abc123/other/.env",
+            }
+        }
+    }
+    f1 = _to_finding(SAMPLE_TH_RESULT)
+    f2 = _to_finding(result2)
+    assert f1.id != f2.id
+
+
+def test_to_finding_missing_github_metadata_graceful():
+    result = {"DetectorName": "Okta", "Verified": False, "SourceMetadata": {"Data": {}}}
+    f = _to_finding(result)
+    assert f.repo_full_name == ""
+    assert f.file_path == ""
+    assert f.source == "trufflehog"

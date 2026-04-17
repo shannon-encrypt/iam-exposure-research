@@ -36,3 +36,37 @@ def _run_trufflehog(args: list[str]) -> list[dict]:
 
     proc.wait()
     return results
+
+
+def _to_finding(result: dict) -> Finding:
+    gh = result.get("SourceMetadata", {}).get("Data", {}).get("Github", {})
+    repo_url = gh.get("repository", "")
+    parts = repo_url.rstrip("/").split("/")
+    repo_full_name = "/".join(parts[-2:]) if len(parts) >= 2 else ""
+    file_path = gh.get("file", "")
+    file_url = gh.get("link", "")
+    detector = result.get("DetectorName", "unknown")
+    category = detector.lower()
+
+    fid = hashlib.sha256(
+        f"{repo_full_name}::{file_path}::{detector}".encode()
+    ).hexdigest()[:16]
+
+    return Finding(
+        id=fid,
+        query=detector,
+        category=category,
+        repo_full_name=repo_full_name,
+        repo_url=repo_url,
+        file_path=file_path,
+        file_url=file_url,
+        snippet="",
+        repo_is_fork=False,
+        repo_stars=0,
+        repo_language=None,
+        repo_created_at="",
+        repo_pushed_at="",
+        is_likely_real=result.get("Verified", False),
+        secret_types=[detector],
+        source="trufflehog",
+    )
