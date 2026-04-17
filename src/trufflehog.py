@@ -23,6 +23,7 @@ def _run_trufflehog(args: list[str]) -> list[dict]:
             "trufflehog not found. Install from https://github.com/trufflesecurity/trufflehog"
         )
 
+    assert proc.stdout is not None
     results = []
     for line in proc.stdout:
         line = line.strip()
