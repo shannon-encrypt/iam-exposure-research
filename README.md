@@ -23,6 +23,11 @@ cp .env.example .env
 - Fine-grained personal access token
 - Scopes needed: `public_repo` (read-only), no write permissions required
 
+### TruffleHog (optional)
+Required only if using `--trufflehog` or `--repo` flags.
+
+Install: [https://github.com/trufflesecurity/trufflehog](https://github.com/trufflesecurity/trufflehog)
+
 ## Usage
 
 ```bash
@@ -40,6 +45,15 @@ python main.py
 
 # Re-enrich existing findings without re-running dorks
 python main.py --load-findings output/findings.json
+
+# Run with TruffleHog independent org scan + depth scan on dorker findings
+python main.py --trufflehog --org example-org
+
+# Scan a single repo with TruffleHog (implies --trufflehog)
+python main.py --trufflehog --repo https://github.com/org/repo
+
+# Full run: dorking + TruffleHog independent + depth scan
+python main.py --trufflehog
 ```
 
 ## Dork categories
