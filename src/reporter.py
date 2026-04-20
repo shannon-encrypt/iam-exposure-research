@@ -5,8 +5,10 @@ Generates output artifacts:
   2. report.md    — blog post draft with methodology, stats, and anonymized examples
 """
 
+import hashlib
 import json
 import os
+import re
 from collections import Counter
 from dataclasses import asdict
 from datetime import datetime
@@ -18,15 +20,43 @@ console = Console()
 
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
+_ORG_CACHE: dict[str, str] = {}
+
+
+def _org_alias(org: str) -> str:
+    """Return a stable, opaque alias for an org name (e.g. 'org-a3f2')."""
+    if org not in _ORG_CACHE:
+        digest = hashlib.sha256(org.encode()).hexdigest()[:6]
+        _ORG_CACHE[org] = f"org-{digest}"
+    return _ORG_CACHE[org]
+
+
+def _anonymize_finding(d: dict) -> dict:
+    """Replace org names in repo/URL fields with stable pseudonyms."""
+    repo = d.get("repo_full_name", "")
+    if "/" in repo:
+        org, repo_name = repo.split("/", 1)
+        alias = _org_alias(org)
+        d["repo_full_name"] = f"{alias}/{repo_name}"
+        for key in ("repo_url", "file_url"):
+            if d.get(key):
+                d[key] = re.sub(
+                    rf"(https://github\.com/){re.escape(org)}(/)",
+                    rf"\g<1>{alias}\2",
+                    d[key],
+                )
+    return d
+
 
 def save_findings_json(findings: list[Finding]) -> Path:
-    """Save enriched findings to JSON. Strips raw snippets for responsible disclosure."""
+    """Save enriched findings to JSON. Strips raw snippets and anonymizes orgs."""
     OUTPUT_DIR.mkdir(exist_ok=True)
     out = []
     for f in findings:
         d = asdict(f)
         # Don't publish raw snippets — only metadata and AI analysis
         d.pop("snippet", None)
+        d = _anonymize_finding(d)
         out.append(d)
 
     path = OUTPUT_DIR / "findings.json"
