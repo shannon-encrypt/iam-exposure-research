@@ -28,6 +28,8 @@ Required only if using `--trufflehog` or `--repo` flags.
 
 Install: [https://github.com/trufflesecurity/trufflehog](https://github.com/trufflesecurity/trufflehog)
 
+TruffleHog runs in **detection-only mode** (`--no-verification`). It identifies likely-exposed credentials via pattern matching and entropy heuristics — it does not authenticate against any live API to confirm validity. This is intentional: authenticating with a credential you do not own constitutes unauthorized access under the CFAA regardless of intent.
+
 ## Usage
 
 ```bash
@@ -67,10 +69,11 @@ python main.py --trufflehog
 
 ## Responsible use
 
-- No credentials are stored, tested, or validated
-- Raw file content is redacted before AI processing
+- Credentials are detected via pattern matching and heuristics only — never authenticated against live APIs
+- Raw file content is redacted before AI processing; no secrets are stored
 - Findings with likely-active credentials should be reported via [GitHub Secret Scanning](https://docs.github.com/en/code-security/secret-scanning)
-- This tool is for research and awareness, not exploitation
+- Do not validate credentials you do not own or have explicit written authorization to test — doing so is unauthorized access under the CFAA regardless of intent
+- This tool is for research, awareness, and authorized defensive use only
 
 ## Output
 
