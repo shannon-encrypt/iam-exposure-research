@@ -15,7 +15,8 @@ console = Console()
 
 
 def _run_trufflehog(args: list[str]) -> list[dict]:
-    cmd = ["trufflehog"] + args + ["--json", "--no-update"]
+    # --no-verification ensures we never actively test credentials against live APIs (CFAA)
+    cmd = ["trufflehog"] + args + ["--json", "--no-update", "--no-verification"]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     except FileNotFoundError:
