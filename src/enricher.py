@@ -17,7 +17,22 @@ from src.dorker import Finding
 load_dotenv()
 console = Console()
 
-client = Anthropic()
+_client = None
+
+
+def _get_client() -> Anthropic:
+    global _client
+    if _client is None:
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "ANTHROPIC_API_KEY is not set.\n"
+                "AI enrichment requires an Anthropic API key (costs money).\n"
+                "  • Add it to your .env file: ANTHROPIC_API_KEY=sk-ant-...\n"
+                "  • Or skip enrichment entirely: python main.py --skip-enrichment"
+            )
+        _client = Anthropic(api_key=api_key)
+    return _client
 
 SYSTEM_PROMPT = """You are a senior cloud security researcher specializing in IAM and identity exposure analysis.
 You analyze GitHub code snippets that may contain exposed credentials, secrets, or misconfigured identity provider settings.
@@ -72,8 +87,8 @@ def enrich_finding(finding: Finding, max_retries: int = 3) -> Finding:
 
     for attempt in range(max_retries):
         try:
-            response = client.messages.create(
-                model="claude-sonnet-4-20250514",
+            response = _get_client().messages.create(
+                model="claude-sonnet-4-6",
                 max_tokens=1000,
                 system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
